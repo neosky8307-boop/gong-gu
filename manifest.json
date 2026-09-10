@@ -1,0 +1,17 @@
+{
+  "name": "공구장부",
+  "short_name": "공구장부",
+  "description": "다 같이 사는 걸 깔끔하게 - 공동구매 주문표 & 정산",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EDEEE4",
+  "theme_color": "#26302B",
+  "orientation": "portrait",
+  "lang": "ko",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

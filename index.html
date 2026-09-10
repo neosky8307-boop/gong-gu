@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>공구장부</title>
+<meta name="description" content="다 같이 사는 걸 깔끔하게 - 공동구매 주문표 & 정산">
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#26302B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="공구장부">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EDEEE4;
+    --paper-raised: #F6F6EF;
+    --ink: #26302B;
+    --ink-soft: #55584C;
+    --muted: #918B78;
+    --line: #C7C2AE;
+    --line-strong: #A9A290;
+    --green: #3F6650;
+    --green-soft: #E4EBE3;
+    --stamp: #A8452F;
+    --stamp-soft: #F3E2DC;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans KR', sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--paper);
+    display:flex;
+    flex-direction:column;
+    padding-bottom:32px;
+  }
+  h1,h2,h3{
+    font-family:'Noto Serif KR', serif;
+    margin:0;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .header{
+    padding:22px 20px 14px;
+    border-bottom:1px solid var(--line-strong);
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+  }
+  .brand h1{font-size:21px; letter-spacing:-0.2px;}
+  .brand .tagline{font-size:11.5px; color:var(--muted); margin-top:3px;}
+  .tabs{
+    display:flex;
+    border-bottom:1px solid var(--line-strong);
+    background:var(--paper);
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:12px 8px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+  }
+  .tab.active{color:var(--ink); border-bottom:2px solid var(--green);}
+  .content{padding:16px 18px 8px; flex:1;}
+  .empty{
+    text-align:center;
+    padding:48px 20px;
+    color:var(--muted);
+    font-size:13.5px;
+    line-height:1.7;
+  }
+  .empty .big{font-size:28px; display:block; margin-bottom:10px;}
+  .round-card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    cursor:pointer;
+    position:relative;
+  }
+  .round-card:active{background:var(--green-soft);}
+  .round-card .rtitle{font-family:'Noto Serif KR',serif; font-size:15.5px; font-weight:600;}
+  .round-card .rmeta{font-size:12px; color:var(--muted); margin-top:5px; display:flex; gap:10px;}
+  .round-card .ramount{
+    position:absolute; top:14px; right:16px;
+    font-weight:700; font-size:14px; color:var(--green);
+    font-variant-numeric:tabular-nums;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    background:var(--ink);
+    color:var(--paper-raised);
+    border:none;
+    border-radius:3px;
+    padding:11px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .btn.primary{background:var(--green); color:#fff;}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line-strong);}
+  .btn.danger{background:transparent; color:var(--stamp); border:1px solid var(--stamp);}
+  .btn.block{width:100%;}
+  .btn.sm{padding:7px 12px; font-size:12.5px;}
+  .fab-row{margin-top:14px;}
+  input[type=text], input[type=number]{
+    font-family:inherit;
+    font-size:14px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    border-radius:3px;
+    padding:9px 10px;
+    color:var(--ink);
+  }
+  input[type=text]:focus, input[type=number]:focus{outline:2px solid var(--green); outline-offset:0;}
+  .field-row{display:flex; gap:8px; margin-bottom:10px;}
+  .field-row input[type=text]{flex:1; min-width:0;}
+  .field-row input.price{width:100px;}
+  .menu-item-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .menu-item-row .mi-name{font-weight:600; font-size:14px;}
+  .menu-item-row .mi-price{font-size:12.5px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums;}
+  .icon-btn{
+    background:none; border:none; cursor:pointer; color:var(--muted);
+    font-size:13px; padding:4px 8px;
+  }
+  .icon-btn.del{color:var(--stamp);}
+  .section-label{
+    font-size:12px; font-weight:700; color:var(--ink-soft);
+    margin:20px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line-strong);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .section-label:first-child{margin-top:0;}
+  .chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  .chip{
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-radius:14px; padding:6px 10px 6px 12px; font-size:12.5px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .chip button{background:none;border:none;color:var(--stamp);cursor:pointer;font-size:13px;padding:0;}
+  .picker{
+    background:var(--paper-raised); border:1px solid var(--line-strong); border-radius:4px;
+    padding:12px; margin-bottom:14px;
+  }
+  .picker-title{font-size:12.5px; font-weight:700; margin-bottom:8px; color:var(--ink-soft);}
+  .picker-list{display:flex; flex-direction:column; gap:0;}
+  .picker-list label{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 2px; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer;
+  }
+  .picker-list label:last-child{border-bottom:none;}
+  .picker-list .pl-price{color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums;}
+  .grid-wrap{overflow-x:auto; border:1px solid var(--line-strong); border-radius:4px; background:var(--paper-raised); -webkit-overflow-scrolling:touch;}
+  table.order-grid{border-collapse:collapse; width:100%;}
+  table.order-grid th, table.order-grid td{
+    border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);
+    padding:8px 6px;
+    text-align:center;
+    white-space:nowrap;
+  }
+  table.order-grid th.rowhead, table.order-grid td.rowhead{
+    position:sticky; left:0; z-index:2;
+    background:var(--paper-raised);
+    text-align:left;
+    border-right:1px solid var(--line-strong);
+    min-width:84px;
+  }
+  table.order-grid thead th{
+    position:sticky; top:0; z-index:1;
+    background:var(--paper-raised);
+    border-bottom:1px solid var(--line-strong);
+    font-weight:600;
+  }
+  table.order-grid thead th.rowhead{z-index:3;}
+  .item-head-name{font-size:12px; font-weight:700; line-height:1.3;}
+  .item-head-price{font-size:10.5px; color:var(--muted); font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums;}
+  .item-head-del{background:none;border:none;color:var(--stamp);font-size:11px;cursor:pointer;padding:1px 4px 0;}
+  .qty-input{width:42px; text-align:center; padding:6px 2px;}
+  .row-total{font-weight:700; font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--green);}
+  .foot-row td{background:var(--green-soft); font-weight:700; font-variant-numeric:tabular-nums; font-size:12px;}
+  .foot-row td.rowhead{background:var(--green-soft);}
+  .person-name-wrap{display:flex; justify-content:space-between; align-items:center; gap:4px;}
+  .person-del{background:none;border:none;color:var(--stamp);font-size:11px;cursor:pointer;}
+  .summary-card{
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-radius:4px; padding:13px 15px; margin-bottom:10px;
+  }
+  .summary-card .sname{font-family:'Noto Serif KR',serif; font-weight:600; font-size:15px; margin-bottom:6px; display:flex; justify-content:space-between;}
+  .summary-card .sname .stotal{color:var(--green); font-variant-numeric:tabular-nums;}
+  .summary-line{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); padding:3px 0;}
+  .summary-line span.amt{font-variant-numeric:tabular-nums;}
+  .grand-total{
+    background:var(--ink); color:var(--paper-raised);
+    border-radius:4px; padding:16px 18px; margin-top:16px;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .grand-total .gt-label{font-size:13px;}
+  .grand-total .gt-amt{font-family:'Noto Serif KR',serif; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .round-header{
+    display:flex; align-items:center; gap:10px; padding:16px 18px 4px;
+  }
+  .back-btn{background:none;border:none;font-size:20px;color:var(--ink-soft);cursor:pointer;padding:0 4px 0 0;}
+  .rtitle-edit{
+    font-family:'Noto Serif KR',serif; font-size:17px; font-weight:600; border:none;
+    background:transparent; flex:1; min-width:0; padding:2px 0; border-bottom:1px dashed transparent;
+  }
+  .rtitle-edit:focus{outline:none; border-bottom:1px dashed var(--line-strong);}
+  .subtabs{display:flex; gap:0; padding:0 18px; border-bottom:1px solid var(--line); margin-top:6px;}
+  .subtab{padding:10px 4px; margin-right:18px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;}
+  .subtab.active{color:var(--ink); border-bottom:2px solid var(--stamp);}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:10px 18px; border-radius:20px;
+    font-size:12.5px; opacity:0; pointer-events:none; transition:opacity .2s;
+    z-index:50;
+  }
+  .toast.show{opacity:1;}
+  .add-inline{margin-top:2px;}
+  .install-banner{
+    display:none;
+    align-items:center; justify-content:space-between; gap:10px;
+    background:var(--green-soft); border-bottom:1px solid var(--line-strong);
+    padding:10px 18px; font-size:12px; color:var(--ink);
+  }
+  .install-banner.show{display:flex;}
+  .install-banner button{white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="install-banner" id="install-banner">
+  <span>홈 화면에 추가하면 앱처럼 쓸 수 있어요</span>
+  <button class="btn sm primary" id="install-btn">추가</button>
+</div>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const APP = {
+  view: 'home',            // home | menu | round
+  currentRoundId: null,
+  roundTab: 'order',        // order | summary
+  showItemPicker: false,
+  showNewItemForm: false,
+  menuItems: [],
+  rounds: []
+};
+
+const LS_MENU = 'gonggu-menu-items';
+const LS_ROUNDS = 'gonggu-rounds';
+
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function won(n){ return (Math.round(n||0)).toLocaleString('ko-KR') + '원'; }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function saveMenu(){
+  try{ localStorage.setItem(LS_MENU, JSON.stringify(APP.menuItems)); }
+  catch(e){ console.error('메뉴 저장 실패', e); showToast('저장 공간이 부족해요'); }
+}
+function saveRounds(){
+  try{ localStorage.setItem(LS_ROUNDS, JSON.stringify(APP.rounds)); }
+  catch(e){ console.error('차수 저장 실패', e); showToast('저장 공간이 부족해요'); }
+}
+
+function init(){
+  try{
+    const m = localStorage.getItem(LS_MENU);
+    APP.menuItems = m ? JSON.parse(m) : [];
+  }catch(e){ APP.menuItems = []; }
+  try{
+    const r = localStorage.getItem(LS_ROUNDS);
+    APP.rounds = r ? JSON.parse(r) : [];
+  }catch(e){ APP.rounds = []; }
+  render();
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 1600);
+}
+
+function getRound(id){ return APP.rounds.find(r => r.id === id); }
+
+function roundAmount(round){
+  let total = 0;
+  round.participants.forEach(p=>{
+    const o = round.orders[p.id] || {};
+    round.items.forEach(it=>{ total += (o[it.id]||0) * it.price; });
+  });
+  return total;
+}
+
+// ---------- RENDER ----------
+function render(){
+  const app = document.getElementById('app');
+  if(APP.view === 'home') app.innerHTML = renderHome();
+  else if(APP.view === 'menu') app.innerHTML = renderMenu();
+  else if(APP.view === 'round') app.innerHTML = renderRound();
+  bindEvents();
+}
+
+function renderHome(){
+  const rounds = [...APP.rounds].sort((a,b)=> b.createdAt - a.createdAt);
+  let list = '';
+  if(rounds.length === 0){
+    list = `<div class="empty"><span class="big">🗒️</span>아직 등록된 차수가 없어요.<br>첫 공구 차수를 시작해보세요.</div>`;
+  } else {
+    list = rounds.map(r => `
+      <div class="round-card" data-open-round="${r.id}">
+        <div class="rtitle">${esc(r.title)}</div>
+        <div class="ramount">${won(roundAmount(r))}</div>
+        <div class="rmeta">
+          <span>${new Date(r.createdAt).toLocaleDateString('ko-KR')}</span>
+          <span>참가자 ${r.participants.length}명</span>
+          <span>상품 ${r.items.length}종</span>
+        </div>
+      </div>
+    `).join('');
+  }
+  return `
+    <div class="header">
+      <div class="brand">
+        <h1>공구장부</h1>
+      </div>
+      <div class="tagline">누가 뭘 얼마나 샀는지, 차수별로 깔끔하게</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active">차수</div>
+      <div class="tab" data-goto="menu">상품 관리</div>
+    </div>
+    <div class="content">
+      ${list}
+      <div class="fab-row">
+        <button class="btn primary block" id="new-round-btn">+ 새 차수 시작</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMenu(){
+  const rows = APP.menuItems.length === 0
+    ? `<div class="empty"><span class="big">📦</span>등록된 상품이 없어요.<br>자주 파는 상품을 미리 등록해두면<br>다음 차수부터 바로 불러 쓸 수 있어요.</div>`
+    : APP.menuItems.map(it => `
+      <div class="menu-item-row">
+        <div>
+          <div class="mi-name">${esc(it.name)}</div>
+          <div class="mi-price">${won(it.price)}</div>
+        </div>
+        <div>
+          <button class="icon-btn" data-edit-menu-item="${it.id}">수정</button>
+          <button class="icon-btn del" data-del-menu-item="${it.id}">삭제</button>
+        </div>
+      </div>
+    `).join('');
+
+  return `
+    <div class="header">
+      <div class="brand"><h1>공구장부</h1></div>
+      <div class="tagline">누가 뭘 얼마나 샀는지, 차수별로 깔끔하게</div>
+    </div>
+    <div class="tabs">
+      <div class="tab" data-goto="home">차수</div>
+      <div class="tab active">상품 관리</div>
+    </div>
+    <div class="content">
+      <div class="section-label">전체 상품 목록</div>
+      ${rows}
+      <div class="section-label" style="margin-top:22px;">새 상품 추가</div>
+      <div class="field-row">
+        <input type="text" id="new-mi-name" placeholder="상품명 (예: 오징어채)">
+        <input type="number" class="price" id="new-mi-price" placeholder="가격">
+      </div>
+      <button class="btn primary block" id="add-menu-item-btn">상품 등록</button>
+    </div>
+  `;
+}
+
+function renderRound(){
+  const round = getRound(APP.currentRoundId);
+  if(!round){ APP.view = 'home'; return renderHome(); }
+
+  const body = APP.roundTab === 'order' ? renderOrderGrid(round) : renderSummary(round);
+
+  return `
+    <div class="round-header">
+      <button class="back-btn" id="back-home">←</button>
+      <input type="text" class="rtitle-edit" id="round-title-input" value="${esc(round.title)}">
+      <button class="icon-btn del" id="delete-round-btn">삭제</button>
+    </div>
+    <div class="subtabs">
+      <div class="subtab ${APP.roundTab==='order'?'active':''}" data-subtab="order">주문표</div>
+      <div class="subtab ${APP.roundTab==='summary'?'active':''}" data-subtab="summary">집계</div>
+    </div>
+    <div class="content">
+      ${body}
+    </div>
+  `;
+}
+
+function renderOrderGrid(round){
+  let itemPicker = '';
+  if(APP.showItemPicker){
+    const available = APP.menuItems.filter(m => !round.items.find(ri => ri.id === m.id));
+    itemPicker = `
+      <div class="picker">
+        <div class="picker-title">메뉴에서 불러오기</div>
+        <div class="picker-list">
+          ${available.length ? available.map(m => `
+            <label>
+              <span>${esc(m.name)}</span>
+              <span class="pl-price">
+                ${won(m.price)}
+                <button class="btn sm ghost" style="margin-left:8px;" data-pick-item="${m.id}">추가</button>
+              </span>
+            </label>
+          `).join('') : `<div style="color:var(--muted); font-size:12.5px; padding:6px 0;">불러올 수 있는 상품이 없어요.</div>`}
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button class="btn sm ghost" id="show-new-item-form">+ 새 상품 직접 등록</button>
+          <button class="btn sm ghost" id="close-item-picker">닫기</button>
+        </div>
+        ${APP.showNewItemForm ? `
+          <div class="add-inline" style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+            <div class="field-row">
+              <input type="text" id="inline-item-name" placeholder="상품명">
+              <input type="number" class="price" id="inline-item-price" placeholder="가격">
+            </div>
+            <button class="btn sm primary block" id="inline-add-item-btn">이 차수에 추가 (메뉴에도 저장)</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  let gridHtml = '';
+  if(round.items.length === 0){
+    gridHtml = `<div class="empty" style="padding:24px 10px;">이번 차수에 등록된 상품이 없어요.<br>상품을 먼저 추가해주세요.</div>`;
+  } else if(round.participants.length === 0){
+    gridHtml = `<div class="empty" style="padding:24px 10px;">참가자를 추가하면<br>수량을 입력할 수 있어요.</div>`;
+  } else {
+    const itemTotals = round.items.map(it=>{
+      let qty = 0;
+      round.participants.forEach(p => qty += ((round.orders[p.id]||{})[it.id] || 0));
+      return {qty, amount: qty*it.price};
+    });
+    const grand = itemTotals.reduce((s,t)=>s+t.amount,0);
+
+    const thead = `
+      <tr>
+        <th class="rowhead">참가자</th>
+        ${round.items.map(it => `
+          <th>
+            <div class="item-head-name">${esc(it.name)}</div>
+            <div class="item-head-price">${won(it.price)}</div>
+            <button class="item-head-del" data-remove-round-item="${it.id}">빼기</button>
+          </th>
+        `).join('')}
+        <th class="rowhead">합계</th>
+      </tr>
+    `;
+    const rows = round.participants.map(p => {
+      const o = round.orders[p.id] || {};
+      let rowTotal = 0;
+      const cells = round.items.map(it=>{
+        const q = o[it.id] || 0;
+        rowTotal += q * it.price;
+        return `<td><input type="number" min="0" inputmode="numeric" class="qty-input" data-pid="${p.id}" data-itemid="${it.id}" value="${q || ''}" placeholder="0"></td>`;
+      }).join('');
+      return `
+        <tr>
+          <td class="rowhead">
+            <div class="person-name-wrap">
+              <span>${esc(p.name)}</span>
+              <button class="person-del" data-del-participant="${p.id}">×</button>
+            </div>
+          </td>
+          ${cells}
+          <td class="row-total">${won(rowTotal)}</td>
+        </tr>
+      `;
+    }).join('');
+    const foot = `
+      <tr class="foot-row">
+        <td class="rowhead">합계</td>
+        ${itemTotals.map(t => `<td>${t.qty}개</td>`).join('')}
+        <td>${won(grand)}</td>
+      </tr>
+    `;
+    gridHtml = `
+      <div class="grid-wrap">
+        <table class="order-grid">
+          <thead>${thead}</thead>
+          <tbody>${rows}${foot}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="section-label">
+      <span>상품 (${round.items.length})</span>
+      <button class="icon-btn" id="toggle-item-picker">${APP.showItemPicker ? '접기' : '+ 상품 추가'}</button>
+    </div>
+    ${itemPicker}
+
+    <div class="section-label" style="margin-top:16px;">
+      <span>참가자 (${round.participants.length})</span>
+    </div>
+    <div class="field-row">
+      <input type="text" id="new-participant-name" placeholder="참가자 이름">
+      <button class="btn sm primary" id="add-participant-btn">추가</button>
+    </div>
+
+    <div class="section-label">주문표</div>
+    ${gridHtml}
+  `;
+}
+
+function renderSummary(round){
+  if(round.participants.length === 0 || round.items.length === 0){
+    return `<div class="empty" style="padding:32px 10px;">주문표에 참가자와 상품, 수량을<br>먼저 입력해주세요.</div>`;
+  }
+  let grand = 0;
+  const cards = round.participants.map(p=>{
+    const o = round.orders[p.id] || {};
+    const lines = round.items
+      .filter(it => (o[it.id]||0) > 0)
+      .map(it => {
+        const q = o[it.id];
+        const amt = q * it.price;
+        return `<div class="summary-line"><span>${esc(it.name)} × ${q}</span><span class="amt">${won(amt)}</span></div>`;
+      }).join('');
+    const subtotal = round.items.reduce((s,it)=> s + (o[it.id]||0)*it.price, 0);
+    grand += subtotal;
+    if(!lines){
+      return `
+        <div class="summary-card">
+          <div class="sname"><span>${esc(p.name)}</span><span class="stotal">${won(0)}</span></div>
+          <div class="summary-line" style="color:var(--muted);">주문 내역 없음</div>
+        </div>
+      `;
+    }
+    return `
+      <div class="summary-card">
+        <div class="sname"><span>${esc(p.name)}</span><span class="stotal">${won(subtotal)}</span></div>
+        ${lines}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="section-label">참가자별 정산</div>
+    ${cards}
+    <div class="grand-total">
+      <span class="gt-label">전체 합계</span>
+      <span class="gt-amt">${won(grand)}</span>
+    </div>
+    <div class="fab-row">
+      <button class="btn ghost block" id="copy-summary-btn">📋 정산 문구 복사하기</button>
+    </div>
+  `;
+}
+
+// ---------- EVENTS ----------
+function bindEvents(){
+  const app = document.getElementById('app');
+
+  app.querySelectorAll('[data-goto]').forEach(el=>{
+    el.addEventListener('click', ()=>{ APP.view = el.dataset.goto; render(); });
+  });
+
+  // Home
+  const newRoundBtn = document.getElementById('new-round-btn');
+  if(newRoundBtn) newRoundBtn.addEventListener('click', ()=>{
+    const n = APP.rounds.length + 1;
+    const round = { id: uid('round'), title: `${n}차 공구`, createdAt: Date.now(), items: [], participants: [], orders: {} };
+    APP.rounds.push(round);
+    saveRounds();
+    APP.currentRoundId = round.id;
+    APP.roundTab = 'order';
+    APP.showItemPicker = true;
+    APP.view = 'round';
+    render();
+  });
+  app.querySelectorAll('[data-open-round]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      APP.currentRoundId = el.dataset.openRound;
+      APP.roundTab = 'order';
+      APP.showItemPicker = false;
+      APP.showNewItemForm = false;
+      APP.view = 'round';
+      render();
+    });
+  });
+
+  // Menu screen
+  const addMenuBtn = document.getElementById('add-menu-item-btn');
+  if(addMenuBtn) addMenuBtn.addEventListener('click', ()=>{
+    const nameEl = document.getElementById('new-mi-name');
+    const priceEl = document.getElementById('new-mi-price');
+    const name = nameEl.value.trim();
+    const price = parseInt(priceEl.value, 10);
+    if(!name){ showToast('상품명을 입력해주세요'); return; }
+    if(!price || price < 0){ showToast('가격을 입력해주세요'); return; }
+    APP.menuItems.push({ id: uid('item'), name, price });
+    saveMenu();
+    render();
+    showToast('상품이 등록됐어요');
+  });
+  app.querySelectorAll('[data-del-menu-item]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(!confirm('이 상품을 목록에서 삭제할까요?\n(이미 진행된 차수의 주문표에는 영향 없어요)')) return;
+      APP.menuItems = APP.menuItems.filter(m => m.id !== el.dataset.delMenuItem);
+      saveMenu();
+      render();
+    });
+  });
+  app.querySelectorAll('[data-edit-menu-item]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const item = APP.menuItems.find(m => m.id === el.dataset.editMenuItem);
+      if(!item) return;
+      const newName = prompt('상품명 수정', item.name);
+      if(newName === null) return;
+      const newPriceStr = prompt('가격 수정', item.price);
+      if(newPriceStr === null) return;
+      const newPrice = parseInt(newPriceStr, 10);
+      if(newName.trim()) item.name = newName.trim();
+      if(!isNaN(newPrice) && newPrice >= 0) item.price = newPrice;
+      saveMenu();
+      render();
+    });
+  });
+
+  // Round screen
+  const backBtn = document.getElementById('back-home');
+  if(backBtn) backBtn.addEventListener('click', ()=>{ APP.view = 'home'; render(); });
+
+  const titleInput = document.getElementById('round-title-input');
+  if(titleInput) titleInput.addEventListener('change', ()=>{
+    const round = getRound(APP.currentRoundId);
+    if(round && titleInput.value.trim()){ round.title = titleInput.value.trim(); saveRounds(); }
+  });
+
+  const delRoundBtn = document.getElementById('delete-round-btn');
+  if(delRoundBtn) delRoundBtn.addEventListener('click', ()=>{
+    if(!confirm('이 차수를 완전히 삭제할까요?')) return;
+    APP.rounds = APP.rounds.filter(r => r.id !== APP.currentRoundId);
+    saveRounds();
+    APP.view = 'home';
+    render();
+  });
+
+  app.querySelectorAll('[data-subtab]').forEach(el=>{
+    el.addEventListener('click', ()=>{ APP.roundTab = el.dataset.subtab; render(); });
+  });
+
+  const toggleItemPicker = document.getElementById('toggle-item-picker');
+  if(toggleItemPicker) toggleItemPicker.addEventListener('click', ()=>{
+    APP.showItemPicker = !APP.showItemPicker;
+    if(!APP.showItemPicker) APP.showNewItemForm = false;
+    render();
+  });
+  const closeItemPicker = document.getElementById('close-item-picker');
+  if(closeItemPicker) closeItemPicker.addEventListener('click', ()=>{
+    APP.showItemPicker = false; APP.showNewItemForm = false; render();
+  });
+  const showNewItemForm = document.getElementById('show-new-item-form');
+  if(showNewItemForm) showNewItemForm.addEventListener('click', ()=>{
+    APP.showNewItemForm = true; render();
+  });
+
+  app.querySelectorAll('[data-pick-item]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const round = getRound(APP.currentRoundId);
+      const menuItem = APP.menuItems.find(m => m.id === el.dataset.pickItem);
+      if(!round || !menuItem) return;
+      round.items.push({ id: menuItem.id, name: menuItem.name, price: menuItem.price });
+      saveRounds();
+      render();
+    });
+  });
+
+  const inlineAddBtn = document.getElementById('inline-add-item-btn');
+  if(inlineAddBtn) inlineAddBtn.addEventListener('click', ()=>{
+    const round = getRound(APP.currentRoundId);
+    const nameEl = document.getElementById('inline-item-name');
+    const priceEl = document.getElementById('inline-item-price');
+    const name = nameEl.value.trim();
+    const price = parseInt(priceEl.value, 10);
+    if(!name){ showToast('상품명을 입력해주세요'); return; }
+    if(!price || price < 0){ showToast('가격을 입력해주세요'); return; }
+    const newId = uid('item');
+    if(!APP.menuItems.find(m => m.name === name)){
+      APP.menuItems.push({ id: newId, name, price });
+      saveMenu();
+    }
+    round.items.push({ id: newId, name, price });
+    saveRounds();
+    APP.showNewItemForm = false;
+    render();
+    showToast('상품이 추가됐어요');
+  });
+
+  app.querySelectorAll('[data-remove-round-item]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const round = getRound(APP.currentRoundId);
+      round.items = round.items.filter(it => it.id !== el.dataset.removeRoundItem);
+      Object.keys(round.orders).forEach(pid => { delete round.orders[pid][el.dataset.removeRoundItem]; });
+      saveRounds();
+      render();
+    });
+  });
+
+  const addParticipantBtn = document.getElementById('add-participant-btn');
+  if(addParticipantBtn) addParticipantBtn.addEventListener('click', addParticipant);
+  const partInput = document.getElementById('new-participant-name');
+  if(partInput) partInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') addParticipant(); });
+
+  function addParticipant(){
+    const round = getRound(APP.currentRoundId);
+    const input = document.getElementById('new-participant-name');
+    const name = input.value.trim();
+    if(!name){ showToast('이름을 입력해주세요'); return; }
+    const p = { id: uid('p'), name };
+    round.participants.push(p);
+    round.orders[p.id] = {};
+    saveRounds();
+    render();
+  }
+
+  app.querySelectorAll('[data-del-participant]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const round = getRound(APP.currentRoundId);
+      round.participants = round.participants.filter(p => p.id !== el.dataset.delParticipant);
+      delete round.orders[el.dataset.delParticipant];
+      saveRounds();
+      render();
+    });
+  });
+
+  app.querySelectorAll('.qty-input').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const round = getRound(APP.currentRoundId);
+      const pid = el.dataset.pid, itemId = el.dataset.itemid;
+      const val = parseInt(el.value, 10);
+      if(!round.orders[pid]) round.orders[pid] = {};
+      if(!val || val <= 0) delete round.orders[pid][itemId];
+      else round.orders[pid][itemId] = val;
+      saveRounds();
+      render();
+    });
+  });
+
+  const copyBtn = document.getElementById('copy-summary-btn');
+  if(copyBtn) copyBtn.addEventListener('click', async ()=>{
+    const round = getRound(APP.currentRoundId);
+    let text = `📋 ${round.title} 정산\n`;
+    let grand = 0;
+    round.participants.forEach(p=>{
+      const o = round.orders[p.id] || {};
+      const lines = round.items.filter(it => (o[it.id]||0) > 0)
+        .map(it => `  - ${it.name} ${o[it.id]}개 (${won(it.price*o[it.id])})`);
+      const subtotal = round.items.reduce((s,it)=> s + (o[it.id]||0)*it.price, 0);
+      grand += subtotal;
+      if(lines.length){
+        text += `\n${p.name} : ${won(subtotal)}\n${lines.join('\n')}\n`;
+      }
+    });
+    text += `\n총합계 : ${won(grand)}`;
+    try{
+      await navigator.clipboard.writeText(text);
+      showToast('정산 문구가 복사됐어요');
+    }catch(e){
+      showToast('복사에 실패했어요');
+    }
+  });
+}
+
+init();
+
+// ---------- PWA: service worker + install prompt ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('install-btn').addEventListener('click', async ()=>{
+  document.getElementById('install-banner').classList.remove('show');
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  }
+});
+window.addEventListener('appinstalled', ()=>{
+  document.getElementById('install-banner').classList.remove('show');
+});
+</script>
+</body>
+</html>
