@@ -209,7 +209,14 @@
   .item-head-name{font-size:12px; font-weight:700; line-height:1.3;}
   .item-head-price{font-size:10.5px; color:var(--muted); font-weight:400; margin-top:2px; font-variant-numeric:tabular-nums;}
   .item-head-del{background:none;border:none;color:var(--stamp);font-size:11px;cursor:pointer;padding:1px 4px 0;}
-  .qty-input{width:42px; text-align:center; padding:6px 2px;}
+  .qty-cell{display:flex; align-items:center; justify-content:center; gap:3px;}
+  .qty-btn{
+    width:20px; height:20px; padding:0; line-height:18px;
+    border:1px solid var(--line-strong); background:var(--paper);
+    border-radius:3px; font-size:13px; color:var(--ink-soft); cursor:pointer; flex-shrink:0;
+  }
+  .qty-btn:active{background:var(--green-soft);}
+  .qty-input{width:30px; text-align:center; padding:6px 1px;}
   .row-total{font-weight:700; font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--green);}
   .foot-row td{background:var(--green-soft); font-weight:700; font-variant-numeric:tabular-nums; font-size:12px;}
   .foot-row td.rowhead{background:var(--green-soft);}
@@ -258,6 +265,21 @@
   }
   .install-banner.show{display:flex;}
   .install-banner button{white-space:nowrap;}
+  .copy-modal-overlay{
+    position:fixed; inset:0; background:rgba(38,48,43,0.55);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:24px;
+  }
+  .copy-modal{
+    background:var(--paper-raised); border-radius:6px; padding:16px;
+    width:100%; max-width:420px; border:1px solid var(--line-strong);
+  }
+  .copy-modal .cm-title{font-size:12.5px; font-weight:600; margin-bottom:8px; color:var(--ink-soft); line-height:1.5;}
+  .copy-modal textarea{
+    width:100%; min-height:220px; font-family:inherit; font-size:12.5px; line-height:1.6;
+    border:1px solid var(--line-strong); border-radius:4px; padding:10px; color:var(--ink);
+    background:#fff; resize:vertical;
+  }
+  .copy-modal .cm-actions{display:flex; gap:8px; margin-top:10px;}
 </style>
 </head>
 <body>
@@ -499,7 +521,13 @@ function renderOrderGrid(round){
       const cells = round.items.map(it=>{
         const q = o[it.id] || 0;
         rowTotal += q * it.price;
-        return `<td><input type="number" min="0" inputmode="numeric" class="qty-input" data-pid="${p.id}" data-itemid="${it.id}" value="${q || ''}" placeholder="0"></td>`;
+        return `<td>
+          <div class="qty-cell">
+            <button type="button" class="qty-btn" data-qty-step="-1" data-pid="${p.id}" data-itemid="${it.id}">−</button>
+            <input type="number" min="0" inputmode="numeric" class="qty-input" data-pid="${p.id}" data-itemid="${it.id}" value="${q || ''}" placeholder="0">
+            <button type="button" class="qty-btn" data-qty-step="1" data-pid="${p.id}" data-itemid="${it.id}">+</button>
+          </div>
+        </td>`;
       }).join('');
       return `
         <tr>
@@ -583,9 +611,38 @@ function renderSummary(round){
     `;
   }).join('');
 
+  const itemCards = round.items.map(it=>{
+    const buyers = round.participants.filter(p => (round.orders[p.id]||{})[it.id] > 0);
+    const totalQty = buyers.reduce((s,p)=> s + round.orders[p.id][it.id], 0);
+    const totalAmt = totalQty * it.price;
+    if(buyers.length === 0){
+      return `
+        <div class="summary-card">
+          <div class="sname"><span>${esc(it.name)}</span><span class="stotal">${won(0)}</span></div>
+          <div class="summary-line" style="color:var(--muted);">주문 없음</div>
+        </div>
+      `;
+    }
+    const breakdown = buyers.map(p => {
+      const q = round.orders[p.id][it.id];
+      return `<div class="summary-line"><span>${esc(p.name)} × ${q}</span><span class="amt">${won(q*it.price)}</span></div>`;
+    }).join('');
+    return `
+      <div class="summary-card">
+        <div class="sname">
+          <span>${esc(it.name)} <span style="font-weight:400; font-size:11.5px; color:var(--muted);">(개당 ${won(it.price)} · 총 ${totalQty}개)</span></span>
+          <span class="stotal">${won(totalAmt)}</span>
+        </div>
+        ${breakdown}
+      </div>
+    `;
+  }).join('');
+
   return `
     <div class="section-label">참가자별 정산</div>
     ${cards}
+    <div class="section-label" style="margin-top:20px;">상품별 정산</div>
+    ${itemCards}
     <div class="grand-total">
       <span class="gt-label">전체 합계</span>
       <span class="gt-amt">${won(grand)}</span>
@@ -786,10 +843,38 @@ function bindEvents(){
     });
   });
 
+  app.querySelectorAll('.qty-btn').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const round = getRound(APP.currentRoundId);
+      const pid = el.dataset.pid, itemId = el.dataset.itemid;
+      const step = parseInt(el.dataset.qtyStep, 10);
+      if(!round.orders[pid]) round.orders[pid] = {};
+      const next = Math.max(0, (round.orders[pid][itemId] || 0) + step);
+      if(next === 0) delete round.orders[pid][itemId];
+      else round.orders[pid][itemId] = next;
+      saveRounds();
+      render();
+    });
+  });
+
   const copyBtn = document.getElementById('copy-summary-btn');
   if(copyBtn) copyBtn.addEventListener('click', async ()=>{
     const round = getRound(APP.currentRoundId);
-    let text = `📋 ${round.title} 정산\n`;
+    const NL = String.fromCharCode(10);
+    let text = `📋 ${round.title} 정산` + NL;
+
+    const itemTotals = round.items.map(it=>{
+      let qty = 0;
+      round.participants.forEach(p=> qty += ((round.orders[p.id]||{})[it.id]) || 0);
+      return { name: it.name, qty, amount: qty * it.price };
+    });
+    if(itemTotals.some(t => t.qty > 0)){
+      text += NL + '[상품별 총 수량]' + NL;
+      itemTotals.forEach(t=>{
+        text += `- ${t.name} : ${t.qty}개 (${won(t.amount)})` + NL;
+      });
+    }
+
     let grand = 0;
     round.participants.forEach(p=>{
       const o = round.orders[p.id] || {};
@@ -798,17 +883,62 @@ function bindEvents(){
       const subtotal = round.items.reduce((s,it)=> s + (o[it.id]||0)*it.price, 0);
       grand += subtotal;
       if(lines.length){
-        text += `\n${p.name} : ${won(subtotal)}\n${lines.join('\n')}\n`;
+        text += NL + `${p.name} : ${won(subtotal)}` + NL + lines.join(NL) + NL;
       }
     });
-    text += `\n총합계 : ${won(grand)}`;
+    text += NL + `총합계 : ${won(grand)}`;
+    const ok = await copyToClipboard(text);
+    if(ok) showToast('정산 문구가 복사됐어요');
+    else showCopyModal(text);
+  });
+}
+
+// 클립보드 API가 막혀 있거나 지원되지 않는 환경(일부 인앱 브라우저 등)을 위한 다단계 복사
+async function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
     try{
       await navigator.clipboard.writeText(text);
-      showToast('정산 문구가 복사됐어요');
-    }catch(e){
-      showToast('복사에 실패했어요');
-    }
-  });
+      return true;
+    }catch(e){ /* 다음 방식 시도 */ }
+  }
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(ok) return true;
+  }catch(e){ /* 다음 방식 시도 */ }
+  return false;
+}
+
+// 자동 복사가 모두 실패했을 때, 직접 길게 눌러 복사할 수 있도록 텍스트를 보여줌
+function showCopyModal(text){
+  const overlay = document.createElement('div');
+  overlay.className = 'copy-modal-overlay';
+  overlay.innerHTML = `
+    <div class="copy-modal">
+      <div class="cm-title">이 환경에서는 자동 복사가 안 돼요.<br>아래 내용을 길게 눌러 직접 복사해주세요.</div>
+      <textarea id="copy-modal-textarea" readonly></textarea>
+      <div class="cm-actions">
+        <button class="btn ghost block" id="copy-modal-close">닫기</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const ta = overlay.querySelector('#copy-modal-textarea');
+  ta.value = text;
+  ta.focus();
+  ta.select();
+  overlay.querySelector('#copy-modal-close').addEventListener('click', ()=> overlay.remove());
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) overlay.remove(); });
 }
 
 init();
